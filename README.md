@@ -23,11 +23,12 @@ terraform-infra-project
 
 - Terraform installed on your machine.
 - AWS account with appropriate permissions.
+- AWS CLI configured with credentials.
 
 ### Setup
 
 1. Clone the repository:
-   ```
+   ```bash
    git clone <repository-url>
    cd terraform-infra-project
    ```
