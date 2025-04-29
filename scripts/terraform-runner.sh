@@ -13,27 +13,6 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 RESET='\033[0m'
 
-# Function to display usage/help
-usage() {
-  echo -e "${CYAN}Usage:${RESET} ./terraform.sh <stack_name> <terraform_command> <environment> [--dry-run]"
-  echo ""
-  echo -e "${CYAN}Commands:${RESET}"
-  echo -e "  ${GREEN}init${RESET}       Initialize the Terraform backend for the specified environment."
-  echo -e "  ${GREEN}plan${RESET}       Generate and show an execution plan."
-  echo -e "  ${GREEN}apply${RESET}      Apply the changes required to reach the desired state."
-  echo -e "  ${GREEN}destroy${RESET}    Destroy the Terraform-managed infrastructure."
-  echo -e "  ${GREEN}validate${RESET}   Validate the Terraform configuration files."
-  echo ""
-  echo -e "${CYAN}Options:${RESET}"
-  echo -e "  ${YELLOW}--dry-run${RESET}  Show the commands that would be executed without running them."
-  echo ""
-  echo -e "${CYAN}Examples:${RESET}"
-  echo -e "  ${BLUE}./terraform.sh stack_1 init dev${RESET}"
-  echo -e "  ${BLUE}./terraform.sh stack_1 plan prod --dry-run${RESET}"
-  echo -e "  ${BLUE}./terraform.sh stack_1 apply qa${RESET}"
-  echo -e "  ${BLUE}./terraform.sh stack_1 destroy dev${RESET}"
-  exit 0
-}
 
 # Function to log messages
 log() {
@@ -58,12 +37,12 @@ log() {
 validate_inputs() {
   if [ -z "$STACK" ] || [ -z "$COMMAND" ] || [ -z "$ENV" ]; then
     log error "Missing required arguments. Please provide <stack_name>, <terraform_command>, and <environment>."
-    usage
+    exit 1
   fi
 
   if [ "$DRY_RUN" != "" ] && [ "$DRY_RUN" != "--dry-run" ]; then
     log error "Invalid option '${DRY_RUN}'. The only supported option is '--dry-run'."
-    usage
+    exit 1
   fi
 
   # Use STACKS_DIR from the environment variable
