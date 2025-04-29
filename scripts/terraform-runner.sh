@@ -134,26 +134,41 @@ dry_run() {
   exit 0
 }
 
+run_terraform_command() {
+  local command=$1
+  local args=$2
+
+  # Construct the full Terraform command
+  local full_command="terraform $command $args"
+
+  if [ "$DRY_RUN" == "--dry-run" ]; then
+    # Print the command instead of executing it
+    log info "Dry-run mode enabled. The following command would be executed:"
+    echo -e "${BLUE}$full_command${RESET}"
+  else
+    # Execute the command
+    log info "Executing: $full_command"
+    eval "$full_command"
+  fi
+}
+
 # Function to execute Terraform commands
 execute_command() {
   case $COMMAND in
     init)
-      terraform_init
+      run_terraform_command "init" "-backend-config=\"bucket=$BACKEND_BUCKET\" -backend-config=\"key=$BACKEND_KEY\" -backend-config=\"region=$BACKEND_REGION\""
       ;;
     plan)
-      terraform_init
-      terraform plan -var-file="$VAR_FILE"
+      run_terraform_command "plan" "-var-file=\"$VAR_FILE\""
       ;;
     apply)
-      terraform_init
-      terraform apply -var-file="$VAR_FILE"
+      run_terraform_command "apply" "-var-file=\"$VAR_FILE\""
       ;;
     destroy)
-      terraform_init
-      terraform destroy -var-file="$VAR_FILE"
+      run_terraform_command "destroy" "-var-file=\"$VAR_FILE\""
       ;;
     validate)
-      terraform validate
+      run_terraform_command "validate" ""
       ;;
     *)
       log error "Invalid command. Supported commands are: init, plan, apply, destroy, validate."

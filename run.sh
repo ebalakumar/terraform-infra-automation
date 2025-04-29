@@ -10,7 +10,7 @@ STACKS_DIR="$SCRIPT_DIR/stacks"
 export STACKS_DIR
 
 # Source the terraform.sh script using the absolute path
-source "$SCRIPT_DIR/scripts/terraform.sh"
+source "$SCRIPT_DIR/scripts/terraform-runner.sh"
 
 # Call functions from terraform.sh
 validate_inputs "$STACKS_DIR"
