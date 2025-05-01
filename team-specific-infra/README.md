@@ -1,64 +1,56 @@
-# Terraform Infrastructure Project
+# Team-Specific Infra
 
-This project sets up a basic infrastructure using Terraform, demonstrating the use of modules for reusable components. The infrastructure includes an EC2 instance and an S3 bucket.
+The **Team-Specific Infra** repository is a Terraform-based project designed to help individual teams provision and manage their specific infrastructure needs. It follows the infrastructure stack model as described in [Infrastructure as Code](https://www.oreilly.com/library/view/infrastructure-as-code/9781098114664/ch05.html) and uses partial remote backend configuration when initializing Terraform modules. Learn more about partial configuration [here](https://developer.hashicorp.com/terraform/language/backend#partial-configuration).
 
-## Project Structure
+---
 
-```
-terraform-infra-project
-├── modules
-│   ├── ec2          # Module for creating EC2 instances
-│   ├── s3           # Module for creating S3 buckets
-├── scripts
-│   └── setup.sh     # Script for initializing the Terraform project
-├── stacks
-│   └── stack_1      # Stack configuration for deploying the infrastructure
-├── README.md        # Project documentation
-└── terraform.tfvars # Variable definitions for Terraform
-```
+## Repository Structure
 
-## Getting Started
+The repository is organized into the following components:
 
-### Prerequisites
+### 1. Stacks
+A **stack** is a collection of infrastructure resources that are defined and managed together. Stacks are located in the `stacks/` directory and represent specific configurations for different environments (e.g., `dev`, `qa`, `prod`).
 
-- Terraform installed on your machine.
-- AWS account with appropriate permissions.
-- AWS CLI configured with credentials.
+### 2. Modules
+**Modules** are reusable Terraform configurations that define specific infrastructure components (e.g., EC2 instances, S3 buckets). These are located in the `modules/` directory and can be shared across stacks:
+- `ec2/`: Defines EC2 instance configurations.
+- `s3/`: Defines S3 bucket configurations.
 
-### Setup
+### 3. Scripts
+**Scripts** automate the provisioning and management of stacks. The following scripts are included:
+- **`run.sh`**: Main script to execute Terraform operations on stacks.
+- **`local_setup.sh`**: Sets up the local environment for Terraform operations.
+- **`terraform-runner.sh`**: Helper script to streamline Terraform commands.
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd terraform-infra-project
-   ```
+### 4. Configuration
+- **`.tfvars` files**: Contain environment-specific configurations for each stack.
 
-2. Initialize the Terraform project:
-   ```
-   ./scripts/setup.sh
-   ```
+---
 
-3. Configure your `terraform.tfvars` file with the necessary variable values.
+## Key Features
 
-4. Deploy the infrastructure:
-   ```
-   terraform init
-   terraform apply
-   ```
+- **Modular Design**: Reusable modules for common infrastructure components like EC2 and S3.
+- **Environment-Specific Configurations**: Manage infrastructure for `dev`, `qa`, and `prod` environments using stack-specific `.tfvars` files.
+- **Automation**: Scripts simplify Terraform operations, reducing manual effort.
+- **Partial Remote Backend Configuration**: Ensures each environment has its own remote backend, minimizing the impact of potential issues and reducing the blast radius.
+- **Team-Focused**: Tailored for individual team infrastructure needs.
 
-### Modules
+---
 
-- **EC2 Module**: Located in `modules/ec2`, this module defines the configuration for creating an EC2 instance.
-- **S3 Module**: Located in `modules/s3`, this module defines the configuration for creating an S3 bucket.
+## Usage
 
-### Stacks
+1. **Set Up Environment**:
+   - Update the `.tfvars` files in the `stacks/` directory with environment-specific configurations.
 
-- **Stack 1**: Located in `stacks/stack_1`, this stack utilizes the EC2 and S3 modules to create the infrastructure.
+2. **Run Scripts**:
+   - Use the `run.sh` script to provision or manage stacks. The script automates Terraform commands for the specified stack and environment.
 
-### Outputs
+3. **Local Setup**:
+   - Run `local_setup.sh` to prepare your local environment for Terraform operations.
 
-After deployment, you can retrieve the outputs defined in the modules to get information such as instance IDs and bucket names.
+---
 
-## License
+## References
 
-This project is licensed under the MIT License.
+- [Infrastructure as Code - Chapter 5](https://www.oreilly.com/library/view/infrastructure-as-code/9781098114664/ch05.html)
+- [Terraform Partial Backend Configuration](https://developer.hashicorp.com/terraform/language/backend#partial-configuration)

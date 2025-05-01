@@ -14,8 +14,10 @@ A **stack** is a collection of infrastructure resources that are defined and man
 ### 2. Modules
 **Modules** are reusable Terraform configurations that define specific infrastructure components (e.g., EC2 instances, S3 buckets). These are located in the `modules/` directory and can be shared across stacks.
 
-### 3. Scripts
-**Scripts** automate the provisioning and management of stacks. The main script, `run.sh`, collects input from `env.yaml` and performs Terraform operations on the stacks. Additional helper scripts are located in the `scripts/` directory.
+**Scripts** automate the provisioning and management of stacks. The following scripts are included:
+- **`run.sh`**: Main script to execute Terraform operations on stacks.
+- **`local_setup.sh`**: Sets up the local environment for Terraform operations.
+- **`terraform-runner.sh`**: Helper script to streamline Terraform commands.
 
 ### 4. Configuration
 - **`env.yaml`**: Contains team-specific configurations and environment details.
@@ -28,7 +30,7 @@ A **stack** is a collection of infrastructure resources that are defined and man
 - **Stack-Based Management**: Simplifies infrastructure changes by grouping resources into stacks.
 - **Automation**: Scripts streamline Terraform operations, reducing manual effort.
 - **Team-Specific Configurations**: Easily manage infrastructure for multiple teams using `env.yaml`.
-- **Reduced Blast Radius**: Partial remote backend configuration ensures each environment has its own remote backend, minimizing the impact of potential issues.
+- **Partial Remote Backend Configuration**: Ensures each environment for every team has its own remote backend, minimizing the impact of potential issues and reducing the blast radius.
 
 ---
 
