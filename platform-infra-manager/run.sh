@@ -1,4 +1,5 @@
 #!/bin/bash
+set +x
 
 # Dynamically determine the directory of this script
 SCRIPT_DIR=$(dirname "$(realpath "$0")")
@@ -18,61 +19,66 @@ source "$SCRIPT_DIR/scripts/local_setup.sh"
 
 # Function to display usage/help
 usage() {
-  echo -e "${CYAN}Usage:${RESET} ./run.sh <stack_name> <team_name> <environment> <terraform_command> [--dry-run]"
+  echo -e "${CYAN}Usage:${RESET} ./run.sh stack=<stack_name> team=<team_name> env=<environment> command=<terraform_command> [dry-run]"
   echo ""
   echo -e "${CYAN}Commands:${RESET}"
   echo -e "  ${GREEN}local_setup${RESET}  Validate that all required tools (e.g., Terraform, AWS CLI) are installed."
-  echo -e "  ${GREEN}<stack_name> <team_name> <environment> <terraform_command>${RESET}  Run Terraform commands for a specific stack, team, and environment."
+  echo -e "  ${GREEN}stack=<stack_name> team=<team_name> env=<environment> command=<terraform_command>${RESET}  Run Terraform commands for a specific stack, team, and environment."
   echo ""
   echo -e "${CYAN}Options:${RESET}"
-  echo -e "  ${YELLOW}--dry-run${RESET}  Show the commands that would be executed without running them."
+  echo -e "  ${YELLOW}dry-run${RESET}  Show the commands that would be executed without running them."
   echo ""
   echo -e "${CYAN}Examples:${RESET}"
   echo -e "  ${BLUE}./run.sh local_setup${RESET}"
-  echo -e "  ${BLUE}./run.sh stack_1 team1 dev init${RESET}"
-  echo -e "  ${BLUE}./run.sh stack_1 team1 prod plan --dry-run${RESET}"
-  echo -e "  ${BLUE}./run.sh stack_1 team2 qa apply${RESET}"
-  echo -e "  ${BLUE}./run.sh stack_1 team3 dev destroy${RESET}"
+  echo -e "  ${BLUE}./run.sh stack=stack_1 team=team1 env=dev command=init${RESET}"
+  echo -e "  ${BLUE}./run.sh stack=stack_1 team=team1 env=prod command=plan dry-run${RESET}"
+  echo -e "  ${BLUE}./run.sh stack=stack_1 team=team2 env=qa command=apply${RESET}"
+  echo -e "  ${BLUE}./run.sh stack=stack_1 team=team3 env=dev command=destroy${RESET}"
   exit 0
 }
 
-# Validate inputs and execute commands
-if [ "$#" -lt 1 ]; then
+# Parse named parameters
+STACK=""
+TEAM=""
+ENV=""
+COMMAND=""
+DRY_RUN=false
+
+for arg in "$@"; do
+  case $arg in
+  stack=*)
+    STACK="${arg#*=}"
+    ;;
+  team=*)
+    TEAM="${arg#*=}"
+    ;;
+  env=*)
+    ENV="${arg#*=}"
+    ;;
+  command=*)
+    COMMAND="${arg#*=}"
+    ;;
+  dry-run)
+    DRY_RUN=true
+    ;;
+  *)
+    echo -e "${RED}[ERROR]${RESET} Unknown argument: $arg"
+    usage
+    ;;
+  esac
+done
+
+# Validate mandatory parameters
+if [ -z "$STACK" ] || [ -z "$TEAM" ] || [ -z "$ENV" ] || [ -z "$COMMAND" ]; then
   echo -e "${RED}[ERROR]${RESET} Missing required arguments."
   usage
 fi
 
-COMMAND=$1
-shift
+# Ensure env.yaml exists
+if [ ! -f "$ENV_YAML" ]; then
+  echo -e "${RED}[ERROR]${RESET} Configuration file '${YELLOW}env.yaml${RESET}' not found in ${YELLOW}$SCRIPT_DIR${RESET}."
+  exit 1
+fi
 
-case $COMMAND in
-  local_setup)
-    # Run local setup without requiring additional arguments
-    validate_tools
-    ;;
-  *)
-    # Validate that enough arguments are provided for other commands
-    if [ "$#" -lt 3 ]; then
-      echo -e "${RED}[ERROR]${RESET} Missing required arguments."
-      usage
-    fi
-
-    STACK=$COMMAND
-    TEAM=$1
-    ENV=$2
-    COMMAND=$3
-    DRY_RUN=$4
-
-    # Ensure env.yaml exists
-    if [ ! -f "$ENV_YAML" ]; then
-      echo -e "${RED}[ERROR]${RESET} Configuration file '${YELLOW}env.yaml${RESET}' not found in ${YELLOW}$SCRIPT_DIR${RESET}."
-      exit 1
-    fi
-
-    validate_inputs "$STACKS_DIR"
-    extract_backend_config "$TEAM" "$ENV"
-
-    # Dispatch the Terraform command
-    dispatch_command
-    ;;
-esac
+# Dispatch the Terraform command
+dispatch_command "$STACK" "$TEAM" "$ENV" "$COMMAND" "$DRY_RUN"

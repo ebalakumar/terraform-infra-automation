@@ -1,11 +1,6 @@
 #!/bin/bash
 set +x
 
-STACK=$1
-COMMAND=$2
-ENV=$3
-DRY_RUN=$4
-
 # Define color codes
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -19,38 +14,45 @@ log() {
   local type=$1
   local message=$2
   case $type in
-    info)
-      echo -e "${CYAN}[INFO]${RESET} $message"
-      ;;
-    warn)
-      echo -e "${YELLOW}[WARN]${RESET} $message"
-      ;;
-    error)
-      echo -e "${RED}[ERROR]${RESET} $message"
-      ;;
-    *)
-      echo -e "$message"
-      ;;
+  info)
+    echo -e "${CYAN}[INFO]${RESET} $message"
+    ;;
+  warn)
+    echo -e "${YELLOW}[WARN]${RESET} $message"
+    ;;
+  error)
+    echo -e "${RED}[ERROR]${RESET} $message"
+    ;;
+  *)
+    echo -e "$message"
+    ;;
   esac
 }
 
+# Function to validate inputs
 validate_inputs() {
-  if [ -z "$STACK" ] || [ -z "$COMMAND" ] || [ -z "$ENV" ]; then
-    log error "Missing required arguments. Please provide <stack_name>, <terraform_command>, and <environment>."
+  local stack=$1
+  local team=$2
+  local env=$3
+  local command=$4
+  local dry_run=$5
+
+  if [ -z "$stack" ] || [ -z "$team" ] || [ -z "$env" ] || [ -z "$command" ]; then
+    log error "Missing required arguments. Please provide stack, team, env, and command."
     exit 1
   fi
 
-  if [ "$DRY_RUN" != "" ] && [ "$DRY_RUN" != "--dry-run" ]; then
-    log error "Invalid option '${DRY_RUN}'. The only supported option is '--dry-run'."
+  if [ "$dry_run" != false ] && [ "$dry_run" != true ]; then
+    log error "Invalid value for dry-run. Use 'dry-run' or omit it."
     exit 1
   fi
 
   # Use STACKS_DIR from the environment variable
-  STACK_PATH="$STACKS_DIR/$STACK"
+  STACK_PATH="$STACKS_DIR/$stack"
 
   # Check if the stack directory exists
   if [ ! -d "$STACK_PATH" ]; then
-    log error "Stack '${YELLOW}$STACK${RESET}' not found at ${YELLOW}$STACKS_DIR${RESET}"
+    log error "Stack '${YELLOW}$stack${RESET}' not found at ${YELLOW}$STACKS_DIR${RESET}"
     log info "Available stacks:"
     ls "$STACKS_DIR" 2>/dev/null || log warn "No stacks found in '$STACKS_DIR'."
     exit 1
@@ -86,9 +88,9 @@ extract_backend_config() {
 
 # Function to execute or print commands based on dry-run flag
 execute_or_dry_run() {
-  local command=$1
-  local args=$2
-
+  local dry_run=$1
+  local command=$2
+  local args=$3
   # Construct the full Terraform command
   local full_command="terraform $command $args"
 
@@ -96,7 +98,7 @@ execute_or_dry_run() {
   MAGENTA='\033[0;35m'
   log info "${MAGENTA}Command to be executed:${RESET} $full_command"
 
-  if [ "$DRY_RUN" == "--dry-run" ]; then
+  if [ "$dry_run" == "true" ]; then
     # Print the command instead of executing it
     log info "Dry-run mode enabled. The following command would be executed:"
     echo -e "${BLUE}$full_command${RESET}"
@@ -109,37 +111,57 @@ execute_or_dry_run() {
 
 # Function to dispatch Terraform commands
 dispatch_command() {
-  case $COMMAND in
-    init)
-      execute_or_dry_run "init" "-backend-config=\"bucket=$BACKEND_BUCKET\" -backend-config=\"key=$BACKEND_KEY\" -backend-config=\"region=$BACKEND_REGION\""
-      ;;
-    plan)
-      log info "Running 'terraform init' before 'terraform plan'..."
-      execute_or_dry_run "init" "-backend-config=\"bucket=$BACKEND_BUCKET\" -backend-config=\"key=$BACKEND_KEY\" -backend-config=\"region=$BACKEND_REGION\""
+  local stack=$1
+  local team=$2
+  local env=$3
+  local command=$4
+  local dry_run=$5
 
-      # Construct variable arguments from APP_CONFIG
-      VAR_ARGS=$(echo "$APP_CONFIG" | yq 'to_entries | map("--var \(.key)=\(.value|tostring)") | join(" ")')
-      execute_or_dry_run "plan" "$VAR_ARGS"
-      ;;
-    apply)
-      log info "Running 'terraform init' before 'terraform apply'..."
-      execute_or_dry_run "init" "-backend-config=\"bucket=$BACKEND_BUCKET\" -backend-config=\"key=$BACKEND_KEY\" -backend-config=\"region=$BACKEND_REGION\""
+  validate_inputs "$stack" "$team" "$env" "$command" "$dry_run"
 
-      # Construct variable arguments from APP_CONFIG
-      VAR_ARGS=$(echo "$APP_CONFIG" | yq 'to_entries | map("--var \(.key)=\(.value|tostring)") | join(" ")')
-      execute_or_dry_run "apply" "$VAR_ARGS"
-      ;;
-    destroy)
-      log info "Running 'terraform init' before 'terraform destroy'..."
-      execute_or_dry_run "init" "-backend-config=\"bucket=$BACKEND_BUCKET\" -backend-config=\"key=$BACKEND_KEY\" -backend-config=\"region=$BACKEND_REGION\""
-      execute_or_dry_run "destroy" ""
-      ;;
-    validate)
-      execute_or_dry_run "validate" ""
-      ;;
-    *)
-      log error "Invalid command. Supported commands are: init, plan, apply, destroy, validate."
-      exit 1
-      ;;
+  # Extract backend configuration
+  extract_backend_config "$team" "$env"
+
+  # Change to the stack directory
+  STACK_PATH="$STACKS_DIR/$stack"
+  if [ ! -d "$STACK_PATH" ]; then
+    log error "Stack directory '$STACK_PATH' does not exist."
+    exit 1
+  fi
+  cd "$STACK_PATH" || exit 1
+
+  # Dispatch the Terraform command
+  case $command in
+  init)
+    execute_or_dry_run $dry_run "init" "-backend-config=\"bucket=$BACKEND_BUCKET\" -backend-config=\"key=$BACKEND_KEY\" -backend-config=\"region=$BACKEND_REGION\""
+    ;;
+  plan)
+    log info "Running 'terraform init' before 'terraform plan'..."
+    execute_or_dry_run $dry_run "init" "-backend-config=\"bucket=$BACKEND_BUCKET\" -backend-config=\"key=$BACKEND_KEY\" -backend-config=\"region=$BACKEND_REGION\""
+
+    # Construct variable arguments from APP_CONFIG
+    VAR_ARGS=$(echo "$APP_CONFIG" | yq 'to_entries | map("--var \(.key)=\(.value|tostring)") | join(" ")')
+    execute_or_dry_run $dry_run "plan" "$VAR_ARGS" $dry_run
+    ;;
+  apply)
+    log info "Running 'terraform init' before 'terraform apply'..."
+    execute_or_dry_run $dry_run "init" "-backend-config=\"bucket=$BACKEND_BUCKET\" -backend-config=\"key=$BACKEND_KEY\" -backend-config=\"region=$BACKEND_REGION\""
+
+    # Construct variable arguments from APP_CONFIG
+    VAR_ARGS=$(echo "$APP_CONFIG" | yq 'to_entries | map("--var \(.key)=\(.value|tostring)") | join(" ")')
+    execute_or_dry_run $dry_run "apply" "$VAR_ARGS"
+    ;;
+  destroy)
+    log info "Running 'terraform init' before 'terraform destroy'..."
+    execute_or_dry_run $dry_run "init" "-backend-config=\"bucket=$BACKEND_BUCKET\" -backend-config=\"key=$BACKEND_KEY\" -backend-config=\"region=$BACKEND_REGION\""
+    execute_or_dry_run $dry_run "destroy" ""
+    ;;
+  validate)
+    execute_or_dry_run $dry_run "validate" ""
+    ;;
+  *)
+    log error "Invalid command. Supported commands are: init, plan, apply, destroy, validate."
+    exit 1
+    ;;
   esac
 }
