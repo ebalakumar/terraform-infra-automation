@@ -159,13 +159,12 @@ execute_command() {
 # Function to validate inputs
 validate_inputs() {
   local stack=$1
-  local team=$2
-  local env=$3
-  local command=$4
-  local dry_run=$5
+  local env=$2
+  local command=$3
+  local dry_run=$4
 
-  if [ -z "$stack" ] || [ -z "$team" ] || [ -z "$env" ] || [ -z "$command" ]; then
-    log error "Missing required arguments. Please provide stack, team, env, and command."
+  if [ -z "$stack" ] || [ -z "$env" ] || [ -z "$command" ]; then
+    log error "Missing required arguments. Please provide stack, env, and command."
     exit 1
   fi
 
@@ -222,12 +221,11 @@ execute_or_dry_run() {
 # Function to dispatch Terraform commands
 dispatch_command() {
   local stack=$1
-  local team=$2
-  local env=$3
-  local command=$4
-  local dry_run=$5
+  local env=$2
+  local command=$3
+  local dry_run=$4
 
-  validate_inputs "$stack" "$team" "$env" "$command" "$dry_run"
+  validate_inputs "$stack" "$env" "$command" "$dry_run"
   extract_backend_config
 
   # Change to the stack directory

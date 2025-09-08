@@ -9,8 +9,8 @@ This repository provides a framework for automating infrastructure provisioning 
 The repository is divided into two main components:
 
 ### 1. **Team-Specific Infra**
-Located in the team-specific-infra directory, this component is tailored for individual teams to manage their specific infrastructure needs. Key features include:
-- **Stacks**: Environment-specific configurations for each team.
+Located in the team-specific-infra directory, this component is tailored for managing environment-specific infrastructure needs. Key features include:
+- **Stacks**: Environment-specific configurations for each stack.
 - **Modules**: Reusable Terraform modules for common infrastructure components.
 - **Scripts**: Automation scripts for running Terraform commands.
 
@@ -55,10 +55,10 @@ Refer to the Platform Infra Manager Readme for more details.
 ### Team-Specific Infra
 ```bash
 # Initialize Terraform for a specific stack and environment
-./team-specific-infra/run.sh stack=stack_1 team=team1 env=dev command=init
+./team-specific-infra/run.sh stack=stack_1 env=dev command=init
 
 # Plan changes for a specific stack and environment
-./team-specific-infra/run.sh stack=stack_1 team=team1 env=prod command=plan dry-run
+./team-specific-infra/run.sh stack=stack_1 env=prod command=plan dry-run
 ```
 
 ### Platform Infra Manager

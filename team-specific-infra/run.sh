@@ -35,7 +35,6 @@ usage() {
 
 # Parse named parameters
 STACK=""
-TEAM=""
 ENV=""
 COMMAND=""
 DRY_RUN=false
@@ -44,9 +43,6 @@ for arg in "$@"; do
   case $arg in
     stack=*)
       STACK="${arg#*=}"
-      ;;
-    team=*)
-      TEAM="${arg#*=}"
       ;;
     env=*)
       ENV="${arg#*=}"
@@ -65,10 +61,10 @@ for arg in "$@"; do
 done
 
 # Validate mandatory parameters
-if [ -z "$STACK" ] || [ -z "$TEAM" ] || [ -z "$ENV" ] || [ -z "$COMMAND" ]; then
+if [ -z "$STACK" ] || [ -z "$ENV" ] || [ -z "$COMMAND" ]; then
   echo -e "${RED}[ERROR]${RESET} Missing required arguments."
   usage
 fi
 
 # Dispatch the Terraform command
-dispatch_command "$STACK" "$TEAM" "$ENV" "$COMMAND" "$DRY_RUN"
+dispatch_command "$STACK" "$ENV" "$COMMAND" "$DRY_RUN"
