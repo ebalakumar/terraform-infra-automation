@@ -75,6 +75,7 @@ Refer to the Platform Infra Manager Readme for more details.
 ## References
 
 - [Infrastructure as Code - Chapter 5](https://www.oreilly.com/library/view/infrastructure-as-code/9781098114664/ch05.html)
+- [Infrastructure as Code - Chapter 7](https://learning.oreilly.com/library/view/infrastructure-as-code/9781098150341/ch07.html)
 - [Terraform Partial Backend Configuration](https://developer.hashicorp.com/terraform/language/backend#partial-configuration)
 
 ---
