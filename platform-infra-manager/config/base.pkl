@@ -1,0 +1,62 @@
+/// Base configuration schema and shared settings for all teams
+open module config.base
+
+import "schemas/common.pkl"
+import "schemas/backend.pkl"
+import "schemas/app.pkl"
+
+/// Simplified environment configuration for app teams
+class SimpleEnvironmentConfig {
+  /// S3 bucket name for storing terraform state
+  bucket: common.S3BucketName
+  
+  /// EC2 instance type (t3.micro, t3.small, t3.medium, t3.large, etc.)
+  instanceType: common.Ec2InstanceType
+  
+  /// AMI ID for EC2 instances (format: ami-xxxxxxxxx)
+  amiId: common.AmiId
+  
+  /// SSH key name for EC2 access
+  keyName: common.SshKeyName
+  
+  /// Derived backend configuration (hidden from app teams)
+  hidden backendConfig: backend.BackendConfig = new {
+    region = commonBackendConfig.region
+    bucket = this.bucket
+    key = "terraform.tfstate"
+    encrypt = commonBackendConfig.encrypt
+  }
+  
+  /// Derived app configuration (hidden from app teams)
+  hidden applicationConfig: app.AppConfig = new {
+    instanceType = this.instanceType
+    amiId = this.amiId
+    keyName = this.keyName
+  }
+}
+
+/// Base team configuration template
+open class BaseTeamConfig {
+  /// Development environment - customize your values here
+  dev: SimpleEnvironmentConfig
+  
+  /// QA environment - customize your values here
+  qa: SimpleEnvironmentConfig
+  
+  /// Production environment - customize your values here
+  prod: SimpleEnvironmentConfig
+}
+
+/// Common backend configuration shared across all teams
+commonBackendConfig {
+  region = "us-east-1"
+  encrypt = true
+}
+
+/// Validation function for environment configurations
+function validateEnvironmentConfig(config: SimpleEnvironmentConfig, environment: common.Environment): Boolean =
+  // Ensure production uses appropriate instance sizes
+  if (environment == "prod") 
+    config.instanceType != "t3.micro" && config.instanceType != "t2.micro"
+  else 
+    true
