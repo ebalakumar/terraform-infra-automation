@@ -1,16 +1,7 @@
-/// Team1 Infrastructure Configuration
-/// 
-/// Instructions for App Teams:
-/// 1. Update the bucket names to match your team's naming convention
-/// 2. Choose appropriate instance types for each environment
-/// 3. Set the correct AMI ID for your application
-/// 4. Specify the SSH key name for access
-/// 5. Add any additional tags as needed
 module config.teams.team1
 
 extends "../base.pkl"
 
-/// Development Environment Configuration
 dev {
   bucket = "my-terraform-team1-dev"
   instanceType = "t3.micro"
@@ -18,7 +9,6 @@ dev {
   keyName = "team1-dev-key"
 }
 
-/// QA Environment Configuration  
 qa {
   bucket = "my-terraform-team1-qa"
   instanceType = "t3.small"
@@ -26,8 +16,14 @@ qa {
   keyName = "team1-qa-key"
 }
 
-/// Production Environment Configuration
 prod {
+  bucket = "my-terraform-team1-prod"
+  instanceType = "t3.medium"
+  amiId = "ami-12345678"
+  keyName = "team1-prod-key"
+}
+
+prodddd {
   bucket = "my-terraform-team1-prod"
   instanceType = "t3.medium"
   amiId = "ami-12345678"

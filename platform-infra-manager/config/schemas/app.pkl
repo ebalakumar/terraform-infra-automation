@@ -1,35 +1,18 @@
-/// Application configuration schema for EC2 and other AWS resources
 module config.schemas.app
 
 import "common.pkl"
 
-/// Configuration for EC2 instances and related resources
 class AppConfig {
-  /// EC2 instance type (must be from approved list)
   instanceType: common.Ec2InstanceType
-  
-  /// AMI ID for the EC2 instance (must be valid AMI format)
   amiId: common.AmiId
-  
-  /// SSH key name for EC2 access (must be valid key name format)
   keyName: common.SshKeyName
-  
-  /// Optional: S3 bucket name for application resources
   bucketName: common.S3BucketName?
-  
-  /// Optional: Tags to apply to resources
   tags: Mapping<String, String> = new {}
-  
-  /// Optional: Security group IDs
   securityGroups: Listing<String> = new {}
-  
-  /// Optional: Subnet ID for EC2 placement
   subnetId: String?
 }
 
-/// Validation function for app config completeness
 function validateAppConfig(config: AppConfig, environment: common.Environment): Boolean =
-  // Ensure production environments use appropriate instance types
   if (environment == "prod") 
     config.instanceType != "t3.micro" && config.instanceType != "t2.micro"
   else 

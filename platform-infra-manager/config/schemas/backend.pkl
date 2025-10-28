@@ -1,26 +1,14 @@
-/// Backend configuration schema for Terraform state management
 module config.schemas.backend
 
 import "common.pkl"
 
-/// Configuration for Terraform S3 backend
 class BackendConfig {
-  /// AWS region for the backend (must be a valid AWS region)
   region: common.AwsRegion
-  
-  /// S3 bucket name for storing terraform state
   bucket: common.S3BucketName
-  
-  /// Key path within the bucket for the state file
   key: String(common.isValidStateKey(this))
-  
-  /// Optional: Enable server-side encryption
   encrypt: Boolean = true
-  
-  /// Optional: DynamoDB table for state locking
   dynamodbTable: String? = null
 }
 
-/// Validation that bucket name should include team name for organization
 function validateBackendConfig(config: BackendConfig, teamName: String): Boolean =
   config.bucket.contains(teamName.toLowerCase())
