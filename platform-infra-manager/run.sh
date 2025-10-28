@@ -10,8 +10,8 @@ STACKS_DIR="$SCRIPT_DIR/stacks"
 # Export STACKS_DIR so terraform-runner.sh can use it
 export STACKS_DIR
 
-# Path to env.yaml
-ENV_YAML="$SCRIPT_DIR/env.yaml"
+# Path to Pkl configuration directory
+CONFIG_DIR="$SCRIPT_DIR/config"
 
 # Source the terraform-runner.sh and local_setup.sh scripts
 source "$SCRIPT_DIR/scripts/terraform-runner.sh"
@@ -74,9 +74,18 @@ if [ -z "$STACK" ] || [ -z "$TEAM" ] || [ -z "$ENV" ] || [ -z "$COMMAND" ]; then
   usage
 fi
 
-# Ensure env.yaml exists
-if [ ! -f "$ENV_YAML" ]; then
-  echo -e "${RED}[ERROR]${RESET} Configuration file '${YELLOW}env.yaml${RESET}' not found in ${YELLOW}$SCRIPT_DIR${RESET}."
+# Ensure config directory exists
+if [ ! -d "$CONFIG_DIR" ]; then
+  echo -e "${RED}[ERROR]${RESET} Configuration directory '${YELLOW}config${RESET}' not found in ${YELLOW}$SCRIPT_DIR${RESET}."
+  exit 1
+fi
+
+# Ensure team configuration file exists
+TEAM_CONFIG="$CONFIG_DIR/teams/${TEAM}.pkl"
+if [ ! -f "$TEAM_CONFIG" ]; then
+  echo -e "${RED}[ERROR]${RESET} Team configuration file '${YELLOW}${TEAM}.pkl${RESET}' not found in ${YELLOW}$CONFIG_DIR/teams/${RESET}."
+  echo -e "${CYAN}[INFO]${RESET} Available teams:"
+  ls "$CONFIG_DIR/teams/" 2>/dev/null | grep '\.pkl$' | sed 's/\.pkl$//' || echo -e "${YELLOW}[WARN]${RESET} No team configurations found."
   exit 1
 fi
 

@@ -59,29 +59,57 @@ validate_inputs() {
   fi
 }
 
-# Function to extract backend configuration and app variables from env.yaml
+# Function to extract backend configuration and app variables from team Pkl files
 extract_backend_config() {
-  local yaml_file="$STACKS_DIR/../env.yaml"
   local team=$1
   local env=$2
+  local pkl_file="$STACKS_DIR/../config/teams/${team}.pkl"
 
-  # Extract backend configuration from common_backend_config
-  BACKEND_REGION=$(yq '.common_backend_config.region' "$yaml_file")
+  # Check if the team's Pkl file exists
+  if [ ! -f "$pkl_file" ]; then
+    log error "Team configuration file not found: ${pkl_file}"
+    log info "Available team configurations:"
+    ls "$STACKS_DIR/../config/teams/" 2>/dev/null | grep '\.pkl$' | sed 's/\.pkl$//' || log warn "No team configurations found."
+    exit 1
+  fi
 
-  # Extract backend configuration from remote_backend for the specific team and environment
-  REMOTE_BACKEND_BUCKET=$(yq ".stack_configs[] | select(.name == \"$team\") | .environment | .\"$env\".remote_backend.bucket" "$yaml_file")
-  REMOTE_BACKEND_KEY=$(yq ".stack_configs[] | select(.name == \"$team\") | .environment | .\"$env\".remote_backend.key" "$yaml_file")
+  # First, check if the environment exists by trying to access it
+  local env_check
+  env_check=$(pkl eval "$pkl_file" -x "${env}" 2>/dev/null)
+  
+  if [ -z "$env_check" ]; then
+    log error "Environment '${env}' not found in team configuration for '${team}'."
+    log info "Available environments for team '${team}':"
+    # Extract available environments using pure Pkl commands
+    # Try each standard environment and see which ones exist
+    for potential_env in dev qa prod; do
+      if pkl eval "$pkl_file" -x "$potential_env" >/dev/null 2>&1; then
+        echo "  $potential_env"
+      fi
+    done
+    exit 1
+  fi
 
-  # Combine backend configuration
-  BACKEND_BUCKET=$REMOTE_BACKEND_BUCKET
-  BACKEND_KEY=$REMOTE_BACKEND_KEY
+  # Extract backend configuration using pkl eval
+  BACKEND_REGION=$(pkl eval "$pkl_file" -x "commonBackendConfig.region" 2>/dev/null)
+  BACKEND_BUCKET=$(pkl eval "$pkl_file" -x "${env}.bucket" 2>/dev/null)
+  BACKEND_KEY="terraform.tfstate"  # Static key as defined in base.pkl
 
-  # Extract app configuration variables
-  APP_CONFIG=$(yq ".stack_configs[] | select(.name == \"$team\") | .environment | .\"$env\".app_config" "$yaml_file")
+  # Extract app configuration variables using pkl eval
+  INSTANCE_TYPE=$(pkl eval "$pkl_file" -x "${env}.instanceType" 2>/dev/null)
+  AMI_ID=$(pkl eval "$pkl_file" -x "${env}.amiId" 2>/dev/null)
+  KEY_NAME=$(pkl eval "$pkl_file" -x "${env}.keyName" 2>/dev/null)
 
-  # Validate extracted values
+  # Validate extracted values (this should not happen if environment check passed)
   if [ -z "$BACKEND_BUCKET" ] || [ -z "$BACKEND_REGION" ] || [ -z "$BACKEND_KEY" ]; then
-    log error "Backend configuration is missing for team '${team}' and environment '${env}' in ${yaml_file}."
+    log error "Backend configuration is incomplete for team '${team}' and environment '${env}'."
+    log error "This may indicate a configuration schema issue."
+    exit 1
+  fi
+
+  if [ -z "$INSTANCE_TYPE" ] || [ -z "$AMI_ID" ] || [ -z "$KEY_NAME" ]; then
+    log error "App configuration is incomplete for team '${team}' and environment '${env}'."
+    log error "This may indicate a configuration schema issue."
     exit 1
   fi
 }
@@ -139,16 +167,16 @@ dispatch_command() {
     log info "Running 'terraform init' before 'terraform plan'..."
     execute_or_dry_run $dry_run "init" "-backend-config=\"bucket=$BACKEND_BUCKET\" -backend-config=\"key=$BACKEND_KEY\" -backend-config=\"region=$BACKEND_REGION\""
 
-    # Construct variable arguments from APP_CONFIG
-    VAR_ARGS=$(echo "$APP_CONFIG" | yq 'to_entries | map("--var \(.key)=\(.value|tostring)") | join(" ")')
-    execute_or_dry_run $dry_run "plan" "$VAR_ARGS" $dry_run
+    # Construct variable arguments from extracted Pkl values
+    VAR_ARGS="--var instance_type=$INSTANCE_TYPE --var ami_id=$AMI_ID --var key_name=$KEY_NAME --var region=$BACKEND_REGION"
+    execute_or_dry_run $dry_run "plan" "$VAR_ARGS"
     ;;
   apply)
     log info "Running 'terraform init' before 'terraform apply'..."
     execute_or_dry_run $dry_run "init" "-backend-config=\"bucket=$BACKEND_BUCKET\" -backend-config=\"key=$BACKEND_KEY\" -backend-config=\"region=$BACKEND_REGION\""
 
-    # Construct variable arguments from APP_CONFIG
-    VAR_ARGS=$(echo "$APP_CONFIG" | yq 'to_entries | map("--var \(.key)=\(.value|tostring)") | join(" ")')
+    # Construct variable arguments from extracted Pkl values
+    VAR_ARGS="--var instance_type=$INSTANCE_TYPE --var ami_id=$AMI_ID --var key_name=$KEY_NAME --var region=$BACKEND_REGION"
     execute_or_dry_run $dry_run "apply" "$VAR_ARGS"
     ;;
   destroy)

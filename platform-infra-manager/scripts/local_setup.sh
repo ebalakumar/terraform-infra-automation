@@ -3,7 +3,7 @@
 # Define required versions
 REQUIRED_TERRAFORM_VERSION="1.5.0"
 REQUIRED_AWS_CLI_VERSION="2.12.0"
-REQUIRED_YQ_VERSION="4.30.8"
+REQUIRED_PKL_VERSION="0.25.0"
 
 # Define color codes
 RED='\033[0;31m'
@@ -79,25 +79,44 @@ check_aws_cli() {
   fi
 }
 
-# Check yq
-check_yq() {
-  if command_exists yq; then
-    local yq_version
-    yq_version=$(yq --version | awk '{print $3}')
-    if version_ge "$yq_version" "$REQUIRED_YQ_VERSION"; then
-      log success "yq version $yq_version is installed and meets the requirement."
+# Check Pkl
+check_pkl() {
+  if command_exists pkl; then
+    local pkl_version
+    pkl_version=$(pkl --version | head -n1 | awk '{print $2}')
+    if version_ge "$pkl_version" "$REQUIRED_PKL_VERSION"; then
+      log success "Pkl version $pkl_version is installed and meets the requirement."
     else
-      log error "yq version $yq_version is installed but does not meet the required version $REQUIRED_YQ_VERSION."
+      log error "Pkl version $pkl_version is installed but does not meet the required version $REQUIRED_PKL_VERSION."
       exit 1
     fi
   else
-    log warn "yq is not installed. Installing yq..."
-    sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_darwin_amd64 -o /usr/local/bin/yq
-    sudo chmod +x /usr/local/bin/yq
-    if command_exists yq; then
-      log success "yq has been successfully installed."
+    log warn "Pkl is not installed. Installing Pkl..."
+    
+    # Detect architecture
+    local arch
+    arch=$(uname -m)
+    local pkl_arch
+    if [ "$arch" = "arm64" ] || [ "$arch" = "aarch64" ]; then
+      pkl_arch="aarch64"
     else
-      log error "Failed to install yq. Please install it manually."
+      pkl_arch="amd64"
+    fi
+    
+    # Download and install Pkl
+    local pkl_url="https://github.com/apple/pkl/releases/latest/download/pkl-macos-${pkl_arch}"
+    log info "Downloading Pkl from $pkl_url"
+    
+    if sudo curl -L "$pkl_url" -o /usr/local/bin/pkl; then
+      sudo chmod +x /usr/local/bin/pkl
+      if command_exists pkl; then
+        log success "Pkl has been successfully installed."
+      else
+        log error "Failed to install Pkl. Please install it manually from https://pkl-lang.org/main/current/pkl-cli/index.html"
+        exit 1
+      fi
+    else
+      log error "Failed to download Pkl. Please install it manually from https://pkl-lang.org/main/current/pkl-cli/index.html"
       exit 1
     fi
   fi
@@ -108,6 +127,6 @@ validate_tools() {
   log info "Validating required tools..."
   check_terraform
   check_aws_cli
-  check_yq
+  check_pkl
   log success "All required tools are installed and meet the version requirements."
 }
